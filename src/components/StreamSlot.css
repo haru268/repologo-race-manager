@@ -1,0 +1,134 @@
+.stream-slot {
+  background-color: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.stream-slot.main {
+  border: 3px solid #ff6b6b;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+  z-index: 10;
+}
+
+.slot-header {
+  background-color: #1a1a1a;
+  padding: 8px;
+  border-bottom: 1px solid #444;
+}
+
+.slot-controls {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.platform-select,
+.source-input,
+.title-input {
+  padding: 4px 8px;
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.platform-select {
+  min-width: 120px;
+}
+
+.source-input {
+  flex: 1;
+  min-width: 150px;
+}
+
+.title-input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.apply-btn,
+.mute-btn,
+.main-btn,
+.delete-btn {
+  padding: 4px 12px;
+  background-color: #4a4a4a;
+  color: #fff;
+  border: 1px solid #666;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.apply-btn:hover {
+  background-color: #5a5a5a;
+}
+
+.mute-btn.muted {
+  background-color: #6a1a1a;
+}
+
+.main-btn.active {
+  background-color: #ff6b6b;
+  color: #fff;
+}
+
+.delete-btn {
+  background-color: #6a1a1a;
+}
+
+.delete-btn:hover {
+  background-color: #8a1a1a;
+}
+
+.slot-player {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background-color: #000;
+  overflow: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.embed-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  /* 高画質レンダリングの最適化 */
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* GPUアクセラレーション */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  /* スムーズなスケーリング */
+  object-fit: contain;
+}
+
+.empty-slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
