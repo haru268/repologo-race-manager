@@ -53,33 +53,7 @@ const normalizeTeam = (raw?: Partial<Team>): Team => ({
 const createTeam = (): Team => normalizeTeam();
 
 const createTestTeams = (): Team[] => {
-  const testData = [
-    { name: 'レポロゴα', finalAmount: 250000, playTime: 35, level: 5, members: [{ name: 'メンバーA', hp: 95 }, { name: 'メンバーB', hp: 88 }, { name: 'メンバーC', hp: 92 }, { name: 'メンバーD', hp: 85 }] },
-    { name: 'レポロゴβ', finalAmount: 280000, playTime: 42, level: 5, members: [{ name: 'メンバーE', hp: 100 }, { name: 'メンバーF', hp: 95 }, { name: 'メンバーG', hp: 90 }, { name: 'メンバーH', hp: 88 }] },
-    { name: 'レポロゴγ', finalAmount: 220000, playTime: 38, level: 4, members: [{ name: 'メンバーI', hp: 85 }, { name: 'メンバーJ', hp: 80 }, { name: 'メンバーK', hp: 82 }, { name: 'メンバーL', hp: 78 }] },
-    { name: 'レポロゴδ', finalAmount: 300000, playTime: 45, level: 5, members: [{ name: 'メンバーM', hp: 98 }, { name: 'メンバーN', hp: 96 }, { name: 'メンバーO', hp: 94 }, { name: 'メンバーP', hp: 92 }] },
-    { name: 'レポロゴε', finalAmount: 180000, playTime: 32, level: 3, members: [{ name: 'メンバーQ', hp: 75 }, { name: 'メンバーR', hp: 72 }, { name: 'メンバーS', hp: 70 }, { name: 'メンバーT', hp: 68 }] },
-    { name: 'レポロゴζ', finalAmount: 320000, playTime: 50, level: 5, members: [{ name: 'メンバーU', hp: 100 }, { name: 'メンバーV', hp: 98 }, { name: 'メンバーW', hp: 97 }, { name: 'メンバーX', hp: 95 }] },
-    { name: 'レポロゴη', finalAmount: 200000, playTime: 36, level: 4, members: [{ name: 'メンバーY', hp: 82 }, { name: 'メンバーZ', hp: 80 }, { name: 'メンバーAA', hp: 78 }, { name: 'メンバーAB', hp: 76 }] },
-    { name: 'レポロゴθ', finalAmount: 260000, playTime: 40, level: 5, members: [{ name: 'メンバーAC', hp: 90 }, { name: 'メンバーAD', hp: 88 }, { name: 'メンバーAE', hp: 86 }, { name: 'メンバーAF', hp: 84 }] },
-    { name: 'レポロゴι', finalAmount: 240000, playTime: 37, level: 5, members: [{ name: 'メンバーAG', hp: 89 }, { name: 'メンバーAH', hp: 87 }, { name: 'メンバーAI', hp: 85 }, { name: 'メンバーAJ', hp: 83 }] },
-    { name: 'レポロゴκ', finalAmount: 190000, playTime: 33, level: 3, members: [{ name: 'メンバーAK', hp: 74 }, { name: 'メンバーAL', hp: 72 }, { name: 'メンバーAM', hp: 70 }, { name: 'メンバーAN', hp: 68 }] },
-    { name: 'レポロゴλ', finalAmount: 270000, playTime: 41, level: 5, members: [{ name: 'メンバーAO', hp: 91 }, { name: 'メンバーAP', hp: 89 }, { name: 'メンバーAQ', hp: 87 }, { name: 'メンバーAR', hp: 85 }] },
-    { name: 'レポロゴμ', finalAmount: 210000, playTime: 34, level: 4, members: [{ name: 'メンバーAS', hp: 81 }, { name: 'メンバーAT', hp: 79 }, { name: 'メンバーAU', hp: 77 }, { name: 'メンバーAV', hp: 75 }] },
-    { name: 'レポロゴν', finalAmount: 230000, playTime: 39, level: 4, members: [{ name: 'メンバーAW', hp: 83 }, { name: 'メンバーAX', hp: 81 }, { name: 'メンバーAY', hp: 79 }, { name: 'メンバーAZ', hp: 77 }] },
-  ];
-
-  return testData.map(data => normalizeTeam({
-    name: data.name,
-    finalAmount: data.finalAmount,
-    playTime: { minutes: data.playTime },
-    level: data.level as Team['level'],
-    members: data.members.map(m => ({
-      id: createId(),
-      name: m.name,
-      hp: m.hp,
-    })),
-  }));
+  return [];
 };
 
 const createInitialState = (): AppState => {
