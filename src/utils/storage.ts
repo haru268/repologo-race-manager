@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 
-const STORAGE_KEY = 'multiStreamViewerState';
+const STORAGE_KEY = 'teamRaceBoard:v1';
 
 export function saveState(state: AppState): void {
   try {
