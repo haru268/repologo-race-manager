@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { AppState, Member, Team } from './types';
 import { clearState, loadState, saveState } from './utils/storage';
 import { getHpTotal } from './utils/teamUtils';
+import { initFirebase, subscribeToRealtimeUpdates, saveStateToFirebase, isFirebaseAvailable } from './utils/firebase';
 import RankingPage from './components/RankingPage';
 import AnnouncementPage from './components/AnnouncementPage';
 import './App.css';
@@ -151,8 +152,18 @@ type Page = 'input' | 'ranking' | 'announcement';
 
 export default function App() {
   const [state, setState] = useState<AppState>(() => hydrateState());
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'syncing'>('idle');
   const [currentPage, setCurrentPage] = useState<Page>('input');
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  const [roomId] = useState<string>(() => {
+    // URLパラメータからroomIdを取得、なければデフォルト値を使用
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room') || 'default';
+  });
+  
+  // 自分の変更かどうかを追跡（無限ループを防ぐ）
+  const isLocalChange = useRef(true);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   // 各ランキングごとに独立したstateを管理（結果発表ページでも使用）
   const [repomasterRevealedRanks, setRepomasterRevealedRanks] = useState<Set<number>>(new Set());
@@ -164,15 +175,58 @@ export default function App() {
   const [timeAttackRevealedRanks, setTimeAttackRevealedRanks] = useState<Set<number>>(new Set());
   const [timeAttackIsRevealing, setTimeAttackIsRevealing] = useState(false);
 
+  // Firebase初期化とリアルタイム同期の設定
   useEffect(() => {
-    setSaveStatus('saving');
-    const timer = setTimeout(() => {
-      saveState(state);
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 1500);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [state]);
+    initFirebase();
+    const available = isFirebaseAvailable();
+    setIsFirebaseConnected(available);
+
+    if (available) {
+      // リアルタイム更新を購読
+      const unsubscribe = subscribeToRealtimeUpdates((remoteState) => {
+        // リモートからの変更のみ反映（自分の変更は除外）
+        if (!isLocalChange.current) {
+          setState(remoteState);
+          // ローカルストレージにも保存
+          saveState(remoteState);
+        }
+        isLocalChange.current = false; // フラグをリセット
+      }, roomId);
+
+      unsubscribeRef.current = unsubscribe;
+
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [roomId]);
+
+  // ローカルストレージへの保存とFirebaseへの同期
+  useEffect(() => {
+    // ローカルストレージに保存
+    saveState(state);
+
+    // Firebaseが利用可能な場合、同期
+    if (isFirebaseAvailable() && isLocalChange.current) {
+      setSaveStatus('syncing');
+      saveStateToFirebase(state, roomId)
+        .then(() => {
+          setSaveStatus('saved');
+          setTimeout(() => setSaveStatus('idle'), 1500);
+        })
+        .catch(() => {
+          setSaveStatus('idle');
+        });
+    } else {
+      // Firebaseがない場合は通常の保存
+      setSaveStatus('saving');
+      const timer = setTimeout(() => {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 1500);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [state, roomId]);
 
   // タイムアタック賞順位マップ（ランキングページ用の計算はRankingPage内で行う）
   const timeAttackRankMap = useMemo(() => {
@@ -211,6 +265,7 @@ export default function App() {
   }, [state.teams]);
 
   const handleTeamChange = (teamId: string, updater: (team: Team) => Team) => {
+    isLocalChange.current = true; // 自分の変更であることをマーク
     setState(prev => ({
       ...prev,
       teams: prev.teams.map(team => (team.id === teamId ? updater(team) : team)),
@@ -251,6 +306,7 @@ export default function App() {
   };
 
   const handleAddTeam = () => {
+    isLocalChange.current = true; // 自分の変更であることをマーク
     setState(prev => ({
       ...prev,
       teams: [...prev.teams, createTeam()],
@@ -258,6 +314,7 @@ export default function App() {
   };
 
   const handleRemoveTeam = (teamId: string) => {
+    isLocalChange.current = true; // 自分の変更であることをマーク
     setState(prev => ({
       ...prev,
       teams: prev.teams.filter(team => team.id !== teamId),
@@ -266,12 +323,16 @@ export default function App() {
 
   const handleReset = () => {
     if (!window.confirm('全データをリセットしますか？')) return;
+    isLocalChange.current = true; // 自分の変更であることをマーク
     clearState();
     setState(createInitialState());
   };
 
   const saveStatusLabel =
-    saveStatus === 'saving' ? '自動保存中…' : saveStatus === 'saved' ? '保存済み' : '待機中';
+    saveStatus === 'saving' ? '自動保存中…' 
+    : saveStatus === 'syncing' ? '同期中…'
+    : saveStatus === 'saved' ? '保存済み' 
+    : '待機中';
 
   return (
     <div className="app">
@@ -284,7 +345,17 @@ export default function App() {
           </p>
         </div>
         <div className="header__status">
+          {isFirebaseConnected && (
+            <span className="status-pill status-pill--syncing" style={{ marginRight: '8px' }}>
+              🔄 リアルタイム同期中
+            </span>
+          )}
           <span className={`status-pill status-pill--${saveStatus}`}>{saveStatusLabel}</span>
+          {roomId !== 'default' && (
+            <span className="status-pill" style={{ marginLeft: '8px' }}>
+              ルーム: {roomId}
+            </span>
+          )}
           <button className="ghost-btn" onClick={handleReset}>
             全てリセット
           </button>
