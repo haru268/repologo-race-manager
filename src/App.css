@@ -165,6 +165,16 @@
   border: 1px solid var(--border);
 }
 
+.ghost-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ghost-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
 .ghost-btn--small {
   background: rgba(255, 255, 255, 0.15);
 }

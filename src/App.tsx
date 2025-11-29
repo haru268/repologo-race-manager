@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { AppState, Member, Team } from './types';
 import { clearState, loadState, saveState } from './utils/storage';
 import { getHpTotal } from './utils/teamUtils';
-import { initFirebase, subscribeToRealtimeUpdates, saveStateToFirebase, isFirebaseAvailable } from './utils/firebase';
+import { initFirebase, subscribeToRealtimeUpdates, saveStateToFirebase, isFirebaseAvailable, loadInitialState, isFirebaseConfigValid } from './utils/firebase';
 import RankingPage from './components/RankingPage';
 import AnnouncementPage from './components/AnnouncementPage';
 import './App.css';
@@ -178,14 +178,30 @@ export default function App() {
   // Firebase初期化とリアルタイム同期の設定
   useEffect(() => {
     initFirebase();
+    const configValid = isFirebaseConfigValid();
     const available = isFirebaseAvailable();
     setIsFirebaseConnected(available);
 
+    if (!configValid) {
+      console.warn('Firebase設定が未設定です。環境変数を確認してください。');
+    }
+
     if (available) {
+      // 初期データを読み込む
+      loadInitialState(roomId).then((initialState) => {
+        if (initialState) {
+          console.log('初期データを読み込みました:', initialState);
+          isLocalChange.current = false; // 初期データはリモートから
+          setState(initialState);
+          saveState(initialState);
+        }
+      });
+
       // リアルタイム更新を購読
       const unsubscribe = subscribeToRealtimeUpdates((remoteState) => {
         // リモートからの変更のみ反映（自分の変更は除外）
         if (!isLocalChange.current) {
+          console.log('リモートからの変更を反映します');
           setState(remoteState);
           // ローカルストレージにも保存
           saveState(remoteState);
@@ -328,6 +344,34 @@ export default function App() {
     setState(createInitialState());
   };
 
+  // 手動でFirebaseから最新データを読み込む
+  const handleManualSync = async () => {
+    if (!isFirebaseAvailable()) {
+      alert('Firebaseが設定されていません。環境変数を確認してください。');
+      return;
+    }
+
+    setSaveStatus('syncing');
+    try {
+      const remoteState = await loadInitialState(roomId);
+      if (remoteState) {
+        isLocalChange.current = false; // リモートからの読み込み
+        setState(remoteState);
+        saveState(remoteState);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 1500);
+        console.log('手動同期成功: Firebaseから最新データを取得しました');
+      } else {
+        setSaveStatus('idle');
+        alert('Firebaseにデータがありません。');
+      }
+    } catch (error) {
+      console.error('手動同期エラー:', error);
+      setSaveStatus('idle');
+      alert('同期に失敗しました。コンソールを確認してください。');
+    }
+  };
+
   const saveStatusLabel =
     saveStatus === 'saving' ? '自動保存中…' 
     : saveStatus === 'syncing' ? '同期中…'
@@ -345,9 +389,17 @@ export default function App() {
           </p>
         </div>
         <div className="header__status">
-          {isFirebaseConnected && (
+          {isFirebaseConnected ? (
             <span className="status-pill status-pill--syncing" style={{ marginRight: '8px' }}>
               🔄 リアルタイム同期中
+            </span>
+          ) : isFirebaseConfigValid() ? (
+            <span className="status-pill" style={{ marginRight: '8px', backgroundColor: '#ff9800', color: 'white' }}>
+              ⚠️ Firebase接続エラー
+            </span>
+          ) : (
+            <span className="status-pill" style={{ marginRight: '8px', backgroundColor: '#9e9e9e', color: 'white' }}>
+              📦 ローカルのみ
             </span>
           )}
           <span className={`status-pill status-pill--${saveStatus}`}>{saveStatusLabel}</span>
@@ -356,7 +408,18 @@ export default function App() {
               ルーム: {roomId}
             </span>
           )}
-          <button className="ghost-btn" onClick={handleReset}>
+          {isFirebaseAvailable() && (
+            <button 
+              className="ghost-btn" 
+              onClick={handleManualSync}
+              disabled={saveStatus === 'syncing'}
+              style={{ marginLeft: '8px' }}
+              title="Firebaseから最新データを取得"
+            >
+              🔄 同期更新
+            </button>
+          )}
+          <button className="ghost-btn" onClick={handleReset} style={{ marginLeft: '8px' }}>
             全てリセット
           </button>
         </div>

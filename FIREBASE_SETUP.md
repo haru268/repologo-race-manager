@@ -116,6 +116,53 @@ URLに `?room=ルーム名` を追加することで、カスタムルームを�
 - 変更は自動的にローカルストレージにも保存されます
 - Firebaseが設定されていない場合、アプリはローカルストレージのみで動作します
 
+## Vercelへのデプロイ時の環境変数設定
+
+Vercelにデプロイしている場合、環境変数をVercelダッシュボードで設定する必要があります。
+
+### 手順
+
+1. **Vercelダッシュボードにアクセス**
+   - https://vercel.com/dashboard
+   - プロジェクトを選択
+
+2. **環境変数の設定**
+   - 「Settings」→「Environment Variables」をクリック
+   - 以下の環境変数を追加：
+
+| 変数名 | 値 |
+|--------|-----|
+| `VITE_FIREBASE_API_KEY` | Firebaseコンソールから取得したAPI Key |
+| `VITE_FIREBASE_AUTH_DOMAIN` | your-project.firebaseapp.com |
+| `VITE_FIREBASE_DATABASE_URL` | https://your-project-default-rtdb.firebaseio.com |
+| `VITE_FIREBASE_PROJECT_ID` | プロジェクトID |
+| `VITE_FIREBASE_STORAGE_BUCKET` | your-project.appspot.com |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | 123456789 |
+| `VITE_FIREBASE_APP_ID` | 1:123456789:web:abcdef |
+
+3. **環境の選択**
+   - 各環境変数に対して、適用する環境を選択：
+     - ✅ Production（本番環境）
+     - ✅ Preview（プレビュー環境）
+     - ✅ Development（開発環境）
+
+4. **再デプロイ**
+   - 環境変数を追加した後、新しいデプロイをトリガー
+   - 「Deployments」タブから最新のデプロイを選択
+   - 「Redeploy」をクリック
+   - または、新しいコミットをプッシュ
+
+5. **確認**
+   - デプロイ後、サイトを開いてブラウザのコンソールを確認
+   - 「Firebase初期化成功」と表示されればOK
+   - 「Firebase設定が未設定です」と表示される場合は、環境変数が正しく設定されていません
+
+### 注意事項
+
+- 環境変数はデプロイ時にビルドに含まれるため、再デプロイが必要です
+- 環境変数の名前は `VITE_` で始まる必要があります（Viteの仕様）
+- 機密情報なので、GitHubにはコミットしないでください（`.env`ファイルは`.gitignore`に含まれています）
+
 ## トラブルシューティング
 
 ### リアルタイム同期が動作しない

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, off, Database } from 'firebase/database';
+import { getDatabase, ref, onValue, set, off, get, Database } from 'firebase/database';
 import { AppState } from '../types';
 
 // Firebase設定（後で実際の値に置き換えます）
@@ -20,9 +20,16 @@ let database: Database | null = null;
 
 export const initFirebase = (): Database | null => {
   try {
+    // 設定が無効な場合は初期化しない
+    if (!isFirebaseConfigValid()) {
+      console.warn('Firebase設定が無効です。環境変数を確認してください。');
+      return null;
+    }
+    
     if (!app) {
       app = initializeApp(firebaseConfig);
       database = getDatabase(app);
+      console.log('Firebase初期化成功:', firebaseConfig.projectId);
     }
     return database;
   } catch (error) {
@@ -40,6 +47,29 @@ const getStateRef = (roomId: string = 'default') => {
   return ref(database, `rooms/${roomId}/state`);
 };
 
+// 初期データを読み込む
+export const loadInitialState = async (
+  roomId: string = 'default'
+): Promise<AppState | null> => {
+  const stateRef = getStateRef(roomId);
+  if (!stateRef) {
+    return null;
+  }
+
+  try {
+    const snapshot = await get(stateRef);
+    if (snapshot && snapshot.exists()) {
+      const data = snapshot.val() as AppState;
+      console.log('初期データを読み込みました:', roomId, data);
+      return data;
+    }
+    return null;
+  } catch (error) {
+    console.error('初期データ読み込みエラー:', error);
+    return null;
+  }
+};
+
 // リアルタイム同期：他のクライアントの変更を監視
 export const subscribeToRealtimeUpdates = (
   callback: (state: AppState) => void,
@@ -55,16 +85,20 @@ export const subscribeToRealtimeUpdates = (
   onValue(stateRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
+      console.log('リモート更新を受信:', roomId);
       callback(data);
     }
   }, (error) => {
     console.error('リアルタイム更新エラー:', error);
   });
 
+  console.log('リアルタイム同期開始:', roomId);
+
   // クリーンアップ関数を返す
   return () => {
     if (stateRef) {
       off(stateRef);
+      console.log('リアルタイム同期終了:', roomId);
     }
   };
 };
@@ -82,13 +116,31 @@ export const saveStateToFirebase = async (
 
   try {
     await set(stateRef, state);
+    console.log('Firebaseに保存成功:', roomId);
   } catch (error) {
     console.error('Firebase保存エラー:', error);
+    throw error; // エラーを再スローして呼び出し元で処理できるように
   }
+};
+
+// Firebase設定が有効かどうかをチェック（デフォルト値ではないか）
+export const isFirebaseConfigValid = (): boolean => {
+  const config = firebaseConfig;
+  return !!(
+    config.apiKey &&
+    config.apiKey !== 'your-api-key' &&
+    config.databaseURL &&
+    config.databaseURL !== 'https://your-project-default-rtdb.firebaseio.com' &&
+    config.projectId &&
+    config.projectId !== 'your-project-id'
+  );
 };
 
 // Firebaseが利用可能かどうかをチェック
 export const isFirebaseAvailable = (): boolean => {
+  if (!isFirebaseConfigValid()) {
+    return false;
+  }
   return database !== null;
 };
 
