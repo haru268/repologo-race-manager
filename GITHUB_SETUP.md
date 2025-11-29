@@ -1,41 +1,40 @@
-# GitHubへのアップロード手順
+# GitHub Upload Instructions
 
-## 方法1: Gitコマンドを使用（推奨）
+## Method 1: Using Git Commands (Recommended)
 
-### 1. Gitのインストール
-- https://git-scm.com/download/win からGit for Windowsをダウンロード・インストール
+### 1. Install Git
+- Download and install Git for Windows from https://git-scm.com/download/win
 
-### 2. GitHubリポジトリの作成
-1. https://github.com にログイン
-2. 右上の「+」→「New repository」をクリック
-3. リポジトリ名を入力（例: `multi-stream-viewer`）
-4. 「Create repository」をクリック
+### 2. Create GitHub Repository
+1. Log in to https://github.com
+2. Click the "+" icon in the top right → "New repository"
+3. Enter repository name (e.g., `repo-race-manager`)
+4. Click "Create repository"
 
-### 3. ローカルでGitリポジトリを初期化
+### 3. Initialize Git Repository Locally
 ```bash
 git init
 git add .
-git commit -m "Initial commit: マルチ配信ビューア"
+git commit -m "Initial commit: REPO Team Survival Race Management System"
 ```
 
-### 4. GitHubリポジトリに接続
+### 4. Connect to GitHub Repository
 ```bash
-git remote add origin https://github.com/あなたのユーザー名/リポジトリ名.git
+git remote add origin https://github.com/your-username/repository-name.git
 git branch -M main
 git push -u origin main
 ```
 
-## 方法2: GitHub Desktopを使用
+## Method 2: Using GitHub Desktop
 
-1. https://desktop.github.com/ からGitHub Desktopをダウンロード・インストール
-2. GitHub Desktopを開いてログイン
-3. 「File」→「Add Local Repository」でこのフォルダを選択
-4. 「Publish repository」をクリックしてGitHubにアップロード
+1. Download and install GitHub Desktop from https://desktop.github.com/
+2. Open GitHub Desktop and log in
+3. Click "File" → "Add Local Repository" and select this folder
+4. Click "Publish repository" to upload to GitHub
 
-## 方法3: GitHub Webインターフェースで直接アップロード
+## Method 3: Upload via GitHub Web Interface
 
-1. https://github.com にログイン
-2. 新しいリポジトリを作成
-3. 「uploading an existing file」をクリック
-4. このフォルダ内のファイルをドラッグ&ドロップでアップロード
-
+1. Log in to https://github.com
+2. Create a new repository
+3. Click "uploading an existing file"
+4. Drag and drop files from this folder to upload

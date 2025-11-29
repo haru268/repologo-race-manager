@@ -1,82 +1,75 @@
-# Gitエラーの解決方法
+# Git Error Solutions
 
-## よくあるエラーと解決方法
+## Common Errors and Solutions
 
-### エラー1: SSH認証エラー
-`git@github.com` を使っている場合、SSH鍵の設定が必要です。
+### Error 1: SSH Authentication Error
+If you're using `git@github.com`, you need to set up SSH keys.
 
-**解決方法: HTTPSを使用**
+**Solution: Use HTTPS**
 
 ```bash
-# 既存のリモートを削除
+# Remove existing remote
 git remote remove origin
 
-# HTTPSでリモートを追加
+# Add remote with HTTPS
 git remote add origin https://github.com/haru268/-.git
 
-# プッシュ（認証が求められます）
+# Push (authentication will be required)
 git push -u origin main
 ```
 
-### エラー2: 認証エラー（HTTPS使用時）
+### Error 2: Authentication Error (when using HTTPS)
 
-**解決方法1: Personal Access Tokenを使用**
+**Solution 1: Use Personal Access Token**
 1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
-2. "Generate new token" をクリック
-3. 必要な権限を選択（repo）
-4. トークンをコピー
-5. プッシュ時にパスワードの代わりにトークンを入力
+2. Click "Generate new token"
+3. Select required permissions (repo)
+4. Copy the token
+5. Use the token instead of password when pushing
 
-**解決方法2: GitHub CLIを使用**
+**Solution 2: Use GitHub CLI**
 ```bash
-# GitHub CLIをインストール
+# Install GitHub CLI
 # https://cli.github.com/
 
-# ログイン
+# Login
 gh auth login
 
-# その後、通常通りプッシュ
+# Then push as usual
 git push -u origin main
 ```
 
-### エラー3: リモートが既に存在する
+### Error 3: Remote Already Exists
 ```bash
-# リモートを確認
+# Check remotes
 git remote -v
 
-# 既存のリモートを削除
+# Remove existing remote
 git remote remove origin
 
-# 新しいリモートを追加
+# Add new remote
 git remote add origin https://github.com/haru268/-.git
 ```
 
-## 完全な手順（HTTPS使用）
+## Complete Setup Steps (Using HTTPS)
 
 ```bash
-# 1. リポジトリの初期化（まだの場合）
+# 1. Initialize repository (if not already done)
 git init
 
-# 2. すべてのファイルを追加
+# 2. Add all files
 git add .
 
-# 3. コミット
-git commit -m "最初のコミット"
+# 3. Commit
+git commit -m "Initial commit"
 
-# 4. ブランチ名をmainに変更
+# 4. Rename branch to main
 git branch -M main
 
-# 5. リモートを追加（既にある場合は削除してから）
-git remote remove origin  # 既にある場合
+# 5. Add remote (remove first if it exists)
+git remote remove origin  # if it exists
 git remote add origin https://github.com/haru268/-.git
 
-# 6. プッシュ
+# 6. Push
 git push -u origin main
 ```
-
-
-
-
-
-
-
