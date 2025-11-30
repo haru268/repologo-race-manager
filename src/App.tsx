@@ -2,6 +2,16 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { AppState, Member, Team } from './types';
 import { clearState, loadState, saveState } from './utils/storage';
 import { getHpTotal } from './utils/teamUtils';
+import {
+  loadTemplates,
+  saveTemplate,
+  deleteTemplate,
+  createTemplateFromTeam,
+  createTeamFromTemplate,
+  exportTeamsAsJSON,
+  importTeamsFromJSON,
+  TeamTemplate,
+} from './utils/templates';
 import { initFirebase, subscribeToRealtimeUpdates, saveStateToFirebase, isFirebaseAvailable, loadInitialState, isFirebaseConfigValid } from './utils/firebase';
 import RankingPage from './components/RankingPage';
 import AnnouncementPage from './components/AnnouncementPage';
@@ -174,6 +184,10 @@ export default function App() {
   
   const [timeAttackRevealedRanks, setTimeAttackRevealedRanks] = useState<Set<number>>(new Set());
   const [timeAttackIsRevealing, setTimeAttackIsRevealing] = useState(false);
+
+  // テンプレート管理
+  const [templates, setTemplates] = useState<TeamTemplate[]>(() => loadTemplates());
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   // Firebase初期化とリアルタイム同期の設定
   useEffect(() => {
@@ -372,6 +386,124 @@ export default function App() {
     }
   };
 
+  // テンプレートを保存
+  const handleSaveAsTemplate = (team: Team) => {
+    const templateName = window.prompt('テンプレート名を入力してください:', team.name || '無題のテンプレート');
+    if (!templateName) return;
+    
+    try {
+      createTemplateFromTeam(team, templateName);
+      setTemplates(loadTemplates());
+      alert(`テンプレート「${templateName}」を保存しました。`);
+    } catch (error) {
+      console.error('テンプレート保存エラー:', error);
+      alert('テンプレートの保存に失敗しました。');
+    }
+  };
+
+  // テンプレートからチームを読み込む
+  const handleLoadTemplate = (template: TeamTemplate) => {
+    if (!window.confirm(`テンプレート「${template.name}」を読み込みますか？`)) return;
+    
+    const newTeam = createTeamFromTemplate(template);
+    isLocalChange.current = true;
+    setState(prev => ({
+      ...prev,
+      teams: [...prev.teams, newTeam],
+    }));
+    setShowTemplateModal(false);
+  };
+
+  // テンプレートを削除
+  const handleDeleteTemplate = (templateId: string, templateName: string) => {
+    if (!window.confirm(`テンプレート「${templateName}」を削除しますか？`)) return;
+    
+    deleteTemplate(templateId);
+    setTemplates(loadTemplates());
+  };
+
+  // データをJSONファイルとしてエクスポート
+  const handleExportJSON = () => {
+    try {
+      const jsonString = exportTeamsAsJSON(state.teams);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `teams_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('データをエクスポートしました。');
+    } catch (error) {
+      console.error('エクスポートエラー:', error);
+      alert('エクスポートに失敗しました。');
+    }
+  };
+
+  // JSONファイルからデータをインポート
+  const handleImportJSON = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const jsonString = event.target?.result as string;
+          const importedTeams = importTeamsFromJSON(jsonString);
+          
+          if (!window.confirm(`${importedTeams.length}個のチームをインポートしますか？現在のチームに追加されます。`)) return;
+
+          const createId = () =>
+            (typeof crypto !== 'undefined' && 'randomUUID' in crypto && crypto.randomUUID()) ||
+            Math.random().toString(36).slice(2, 10);
+
+          const newTeams: Team[] = importedTeams.map(importedTeam => {
+            const members: Member[] = importedTeam.members.map(m => ({
+              id: createId(),
+              name: m.name,
+              hp: m.hp,
+            }));
+
+            while (members.length < 4) {
+              members.push({
+                id: createId(),
+                name: '',
+                hp: '',
+              });
+            }
+
+            return {
+              id: createId(),
+              name: importedTeam.name,
+              finalAmount: '',
+              playTime: { minutes: '' },
+              members: members.slice(0, 4),
+              level: 1,
+            };
+          });
+
+          isLocalChange.current = true;
+          setState(prev => ({
+            ...prev,
+            teams: [...prev.teams, ...newTeams],
+          }));
+          alert(`${newTeams.length}個のチームをインポートしました。`);
+        } catch (error) {
+          console.error('インポートエラー:', error);
+          alert(`インポートに失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   const saveStatusLabel =
     saveStatus === 'saving' ? '自動保存中…' 
     : saveStatus === 'syncing' ? '同期中…'
@@ -452,6 +584,15 @@ export default function App() {
             <button className="primary-btn" onClick={handleAddTeam}>
               + チームを追加
             </button>
+            <button className="ghost-btn" onClick={() => setShowTemplateModal(true)}>
+              📋 テンプレート
+            </button>
+            <button className="ghost-btn" onClick={handleExportJSON}>
+              💾 エクスポート
+            </button>
+            <button className="ghost-btn" onClick={handleImportJSON}>
+              📥 インポート
+            </button>
           </div>
         </section>
       )}
@@ -474,13 +615,20 @@ export default function App() {
                   <p className="team-card__eyebrow">チーム {index + 1}</p>
                   <h2>{team.name || '名称未設定'}</h2>
                 </div>
-                {state.teams.length > 1 && (
-                  <div className="team-card__header-actions">
-                    <button className="ghost-btn" onClick={() => handleRemoveTeam(team.id)}>
+                <div className="team-card__header-actions">
+                  <button 
+                    className="ghost-btn ghost-btn--small" 
+                    onClick={() => handleSaveAsTemplate(team)}
+                    title="テンプレートとして保存"
+                  >
+                    💾 保存
+                  </button>
+                  {state.teams.length > 1 && (
+                    <button className="ghost-btn ghost-btn--small" onClick={() => handleRemoveTeam(team.id)}>
                       削除
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </header>
 
               <div className="team-card__rankings">
@@ -632,6 +780,122 @@ export default function App() {
           collectionRevealedRanks={collectionRevealedRanks}
           timeAttackRevealedRanks={timeAttackRevealedRanks}
         />
+      )}
+
+      {/* テンプレート管理モーダル */}
+      {showTemplateModal && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setShowTemplateModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div 
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'var(--panel)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ margin: 0 }}>テンプレート管理</h2>
+              <button 
+                className="ghost-btn"
+                onClick={() => setShowTemplateModal(false)}
+                style={{ padding: '8px 16px' }}
+              >
+                ✕ 閉じる
+              </button>
+            </div>
+
+            {templates.length === 0 ? (
+              <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '32px' }}>
+                保存されたテンプレートがありません。<br />
+                チームカードの「💾 保存」ボタンからテンプレートを保存できます。
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {templates.map((template) => (
+                  <div
+                    key={template.id}
+                    style={{
+                      padding: '16px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      backgroundColor: 'var(--panel-alt)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px' }}>{template.name}</h3>
+                        <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
+                          チーム名: {template.teamName || '名称未設定'}
+                        </p>
+                        <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: '12px' }}>
+                          メンバー数: {template.members.length}人
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          className="ghost-btn ghost-btn--small"
+                          onClick={() => handleLoadTemplate(template)}
+                          style={{ padding: '6px 12px' }}
+                        >
+                          読み込む
+                        </button>
+                        <button
+                          className="ghost-btn ghost-btn--small"
+                          onClick={() => handleDeleteTemplate(template.id, template.name)}
+                          style={{ padding: '6px 12px', color: 'var(--error)' }}
+                        >
+                          削除
+                        </button>
+                      </div>
+                    </div>
+                    {template.members.length > 0 && (
+                      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--muted)' }}>メンバー:</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {template.members.map((member, idx) => (
+                            <span
+                              key={idx}
+                              style={{
+                                fontSize: '12px',
+                                padding: '4px 8px',
+                                backgroundColor: 'var(--bg)',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              {member.name || '名称未設定'} ({member.hp !== '' ? member.hp : '—'} HP)
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

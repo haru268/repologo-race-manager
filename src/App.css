@@ -135,8 +135,16 @@
 }
 
 .controls-panel__actions {
-  align-items: flex-end;
-  justify-content: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.controls-panel__item.controls-panel__actions {
+  flex-direction: row;
 }
 
 .primary-btn,
@@ -186,8 +194,8 @@
 
 .teams-section {
   margin-top: 32px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
 }
 
@@ -861,6 +869,10 @@ th {
   }
 
   .controls-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .teams-section {
     grid-template-columns: 1fr;
   }
 

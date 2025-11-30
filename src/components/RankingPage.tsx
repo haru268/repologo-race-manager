@@ -169,6 +169,7 @@ type RankingSectionProps = {
   setRevealedRanks: React.Dispatch<React.SetStateAction<Set<number>>>;
   isRevealing: boolean;
   setIsRevealing: React.Dispatch<React.SetStateAction<boolean>>;
+  rankingType: 'repomaster' | 'collection' | 'timeattack';
 };
 
 function RankingSection({ 
@@ -180,6 +181,7 @@ function RankingSection({
   setRevealedRanks,
   isRevealing,
   setIsRevealing,
+  rankingType,
 }: RankingSectionProps) {
   // 賞の名前は常に表示する
   const isTitleRevealed = true;
@@ -291,17 +293,38 @@ function RankingSection({
             <tr>
               <th>順位</th>
               <th>チーム名</th>
-              <th>スコア/値</th>
-              <th>最終金額</th>
-              <th>プレイ時間</th>
-              <th>生存HP合計</th>
+              {rankingType === 'repomaster' && (
+                <>
+                  <th>スコア/値</th>
+                  <th>最終金額</th>
+                  <th>プレイ時間</th>
+                  <th>生存HP合計</th>
+                </>
+              )}
+              {rankingType === 'collection' && (
+                <>
+                  <th>最終金額</th>
+                </>
+              )}
+              {rankingType === 'timeattack' && (
+                <>
+                  <th>時間</th>
+                </>
+              )}
               <th>Lv.</th>
             </tr>
           </thead>
           <tbody>
             {rankedTeams.length === 0 && (
               <tr>
-                <td colSpan={7} className="empty-row">
+                <td 
+                  colSpan={
+                    rankingType === 'repomaster' ? 7 : 
+                    rankingType === 'collection' ? 4 : 
+                    4
+                  } 
+                  className="empty-row"
+                >
                   表示できるチームがまだありません。
                 </td>
               </tr>
@@ -325,10 +348,24 @@ function RankingSection({
                       {revealed ? (team.name || '名称未設定') : '???'}
                     </span>
                   </td>
-                  <td>{revealed ? getDisplayValue(team) : '???'}</td>
-                  <td>{revealed ? currencyFormat(team.finalAmount) : '???'}</td>
-                  <td>{revealed ? formatTime(team) : '???'}</td>
-                  <td>{revealed ? team.hpTotal : '???'}</td>
+                  {rankingType === 'repomaster' && (
+                    <>
+                      <td>{revealed ? getDisplayValue(team) : '???'}</td>
+                      <td>{revealed ? currencyFormat(team.finalAmount) : '???'}</td>
+                      <td>{revealed ? formatTime(team) : '???'}</td>
+                      <td>{revealed ? team.hpTotal : '???'}</td>
+                    </>
+                  )}
+                  {rankingType === 'collection' && (
+                    <>
+                      <td>{revealed ? currencyFormat(team.finalAmount) : '???'}</td>
+                    </>
+                  )}
+                  {rankingType === 'timeattack' && (
+                    <>
+                      <td>{revealed ? formatTime(team) : '???'}</td>
+                    </>
+                  )}
                   <td>{revealed ? `Lv.${team.level}` : '???'}</td>
                 </tr>
               );
@@ -445,6 +482,7 @@ export default function RankingPage({
           setRevealedRanks={setRepomasterRevealedRanks}
           isRevealing={repomasterIsRevealing}
           setIsRevealing={setRepomasterIsRevealing}
+          rankingType="repomaster"
         />
       )}
       {activeTab === 'collection' && (
@@ -457,6 +495,7 @@ export default function RankingPage({
           setRevealedRanks={setCollectionRevealedRanks}
           isRevealing={collectionIsRevealing}
           setIsRevealing={setCollectionIsRevealing}
+          rankingType="collection"
         />
       )}
       {activeTab === 'timeattack' && (
@@ -469,6 +508,7 @@ export default function RankingPage({
           setRevealedRanks={setTimeAttackRevealedRanks}
           isRevealing={timeAttackIsRevealing}
           setIsRevealing={setTimeAttackIsRevealing}
+          rankingType="timeattack"
         />
       )}
     </div>
