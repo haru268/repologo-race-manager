@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { AppState, Member, Team } from './types';
 import { clearState, loadState, saveState } from './utils/storage';
-import { getHpTotal } from './utils/teamUtils';
+import { getHpTotal, getHpTotalDetail } from './utils/teamUtils';
 import {
   loadTemplates,
   saveTemplate,
@@ -639,7 +639,7 @@ export default function App() {
                   </span>
                   {repomasterScore !== null && (
                     <span className="ranking-score">
-                      (スコア: {repomasterScore.toLocaleString('ja-JP', { maximumFractionDigits: 2 })})
+                      (スコア: {Math.floor(repomasterScore).toLocaleString('ja-JP')})
                     </span>
                   )}
                 </div>
@@ -719,7 +719,19 @@ export default function App() {
               <div className="members-panel">
                 <div className="members-panel__header">
                   <h3>メンバーHP内訳（最大4名）</h3>
-                  <p>合計HP：<strong>{hpTotal}</strong></p>
+                  {(() => {
+                    const hpDetail = getHpTotalDetail(team.members);
+                    return (
+                      <p>
+                        合計HP：<strong>{hpDetail.total}</strong>
+                        {hpDetail.compensation > 0 && (
+                          <span style={{ marginLeft: '8px', fontSize: '14px', color: 'var(--muted)' }}>
+                            （実HP：{hpDetail.actual} + 補正：+{hpDetail.compensation}）
+                          </span>
+                        )}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div className="members-list">

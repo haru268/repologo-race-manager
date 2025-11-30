@@ -27,7 +27,7 @@ const formatTime = (team: Team) => {
 const currencyFormat = (value: number | '') =>
   value === '' ? '—' : `$${value.toLocaleString('en-US')}`;
 
-const scoreFormat = (value: number) => value.toLocaleString('ja-JP', { maximumFractionDigits: 2 });
+const scoreFormat = (value: number) => Math.floor(value).toLocaleString('ja-JP');
 
 // R.E.P.O.マスター賞のスコア計算
 const calculateRepomasterScore = (team: Team, hpTotal: number): number | null => {
