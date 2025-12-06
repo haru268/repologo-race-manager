@@ -631,32 +631,6 @@ export default function App() {
                 </div>
               </header>
 
-              <div className="team-card__rankings">
-                <div className="ranking-item">
-                  <span className="ranking-label">R.E.P.O.マスター賞</span>
-                  <span className="ranking-value">
-                    {repomasterRank ? `${repomasterRank}位` : '—'}
-                  </span>
-                  {repomasterScore !== null && (
-                    <span className="ranking-score">
-                      (スコア: {Math.floor(repomasterScore).toLocaleString('ja-JP')})
-                    </span>
-                  )}
-                </div>
-                <div className="ranking-item">
-                  <span className="ranking-label">資材回収王チーム</span>
-                  <span className="ranking-value">
-                    {collectionRank ? `${collectionRank}位` : '—'}
-                  </span>
-                </div>
-                <div className="ranking-item">
-                  <span className="ranking-label">タイムアタック賞</span>
-                  <span className="ranking-value">
-                    {timeAttackRank ? `${timeAttackRank}位` : '—'}
-                  </span>
-                </div>
-              </div>
-
               <div className="team-card__grid">
                 <label>
                   チーム名
