@@ -120,11 +120,13 @@ const calculateCollectionRankings = (teams: Team[]): Map<string, number> => {
     finalAmount: typeof team.finalAmount === 'number' ? team.finalAmount : 0,
   }));
   
+  // 最終獲得金額が高い順でソート（レベルは関係なし）
   const sorted = [...enriched].sort((a, b) => b.finalAmount - a.finalAmount);
   const rankingMap = new Map<string, number>();
   
   sorted.forEach((team, index) => {
     const prev = sorted[index - 1];
+    // 最終獲得金額が同じ場合は同点
     const rank = prev && prev.finalAmount === team.finalAmount 
       ? (rankingMap.get(prev.id) ?? index + 1)
       : index + 1;
@@ -258,27 +260,37 @@ export default function App() {
     }
   }, [state, roomId]);
 
-  // タイムアタック賞順位マップ（ランキングページ用の計算はRankingPage内で行う）
+  // タイムアタック賞順位マップ（レベル優先 → 時間が短い順）
   const timeAttackRankMap = useMemo(() => {
     const enriched = state.teams.map(team => {
       const hpTotal = getHpTotal(team.members);
-      return { ...team, hpTotal };
+      const minutes = typeof team.playTime.minutes === 'number' ? team.playTime.minutes : null;
+      return { ...team, hpTotal, minutes };
     });
     
-    // 最終金額でソート（同点は名前順）
+    // レベル優先 → 時間が短い順でソート
     const sorted = [...enriched].sort((a, b) => {
-      const scoreA = typeof a.finalAmount === 'number' ? a.finalAmount : 0;
-      const scoreB = typeof b.finalAmount === 'number' ? b.finalAmount : 0;
-      if (scoreB !== scoreA) return scoreB - scoreA;
+      // まずレベルで比較（高い順）
+      if (b.level !== a.level) {
+        return b.level - a.level;
+      }
+      // レベルが同じ場合は時間で比較（短い順）
+      const timeA = a.minutes !== null ? a.minutes : Infinity;
+      const timeB = b.minutes !== null ? b.minutes : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+      // 時間も同じ場合は名前順
       return (a.name || '').localeCompare(b.name || '', 'ja');
     });
     
     const map = new Map<string, number>();
     sorted.forEach((team, index) => {
       const prev = sorted[index - 1];
-      const scoreA = typeof team.finalAmount === 'number' ? team.finalAmount : 0;
-      const scoreB = prev ? (typeof prev.finalAmount === 'number' ? prev.finalAmount : 0) : -1;
-      const rank = scoreA === scoreB && prev ? (map.get(prev.id) ?? index + 1) : index + 1;
+      // レベルと時間が同じ場合は同点
+      const timeA = team.minutes !== null ? team.minutes : Infinity;
+      const timeB = prev ? (prev.minutes !== null ? prev.minutes : Infinity) : -1;
+      const rank = prev && prev.level === team.level && timeA === timeB
+        ? (map.get(prev.id) ?? index + 1)
+        : index + 1;
       map.set(team.id, rank);
     });
     return map;

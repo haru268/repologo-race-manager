@@ -88,10 +88,12 @@ const calculateCollectionRanking = (teams: Team[]): RankedTeam[] => {
     hpTotal: getHpTotal(team.members),
   }));
 
+  // 最終獲得金額が高い順でソート（レベルは関係なし）
   const sorted = [...enriched].sort((a, b) => b.finalAmount - a.finalAmount);
 
   return sorted.reduce<RankedTeam[]>((acc, item, index) => {
     const prev = sorted[index - 1];
+    // 最終獲得金額が同じ場合は同点
     const isTie = prev && prev.finalAmount === item.finalAmount;
     const rank = isTie && prev ? acc[acc.length - 1].rank : index + 1;
     acc.push({
@@ -113,37 +115,27 @@ const calculateTimeAttackRanking = (teams: Team[]): RankedTeam[] => {
     return { team, timeValue, hpTotal };
   });
 
-  // レベル5到達チーム（時間が短い順）と未到達チームを分ける
-  const validTeams = enriched.filter(t => t.timeValue !== null) as Array<{
-    team: Team;
-    timeValue: number;
-    hpTotal: number;
-  }>;
-
-  const invalidTeams = enriched.filter(t => t.timeValue === null);
-
-  // レベル5到達チームを時間順でソート
-  const sorted = [...validTeams].sort((a, b) => a.timeValue - b.timeValue);
-
-  // 全チームを統合（レベル5到達チーム + 未到達チーム）
-  const allTeams: Array<{
-    team: Team;
-    timeValue: number;
-    hpTotal: number;
-    isReached: boolean;
-  }> = [
-    ...sorted.map(item => ({ ...item, isReached: true })),
-    ...invalidTeams.map(item => ({ ...item, isReached: false, timeValue: Infinity })),
-  ];
+  // レベル優先 → 時間が短い順でソート
+  const sorted = [...enriched].sort((a, b) => {
+    // まずレベルで比較（高い順）
+    if (b.team.level !== a.team.level) {
+      return b.team.level - a.team.level;
+    }
+    // レベルが同じ場合は時間で比較（短い順）
+    const timeA = a.timeValue !== null ? a.timeValue : Infinity;
+    const timeB = b.timeValue !== null ? b.timeValue : Infinity;
+    return timeA - timeB;
+  });
 
   // 順位を計算（同点処理を含む）
-  const entries: RankedTeam[] = allTeams.reduce<RankedTeam[]>((acc, item, index) => {
-    const prev = allTeams[index - 1];
-    // レベル5到達チーム同士で時間が同じ場合は同点
+  const entries: RankedTeam[] = sorted.reduce<RankedTeam[]>((acc, item, index) => {
+    const prev = sorted[index - 1];
+    // レベルと時間が同じ場合は同点
     const isTie = prev && 
-      item.isReached && 
-      prev.isReached && 
-      prev.timeValue === item.timeValue;
+      prev.team.level === item.team.level &&
+      prev.timeValue === item.timeValue &&
+      prev.timeValue !== null &&
+      item.timeValue !== null;
     
     const rank = isTie && prev ? acc[acc.length - 1].rank : index + 1;
     
